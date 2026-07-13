@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from notes import piano_notes
 
+CHUNK = 50
+
 filename = "sample.wav"
 
 sr, y = wavfile.read(filename)
@@ -59,15 +61,15 @@ peak_index = np.argmax(amp)
 peak_freq = frequencies[peak_index] # freq of loudest bin
 
 most_accurate_note = [abs(peak_freq - piano_notes[1]["fundamental_hz"]), piano_notes[1]["note"]]
-for i in piano_notes:
-  fundamental = piano_notes[i]["fundamental_hz"]
-  difference = abs(peak_freq - fundamental)
-  if difference <= most_accurate_note[0]:
-    most_accurate_note = [difference, piano_notes[i]["note"]]
+# for i in piano_notes:
+#   fundamental = piano_notes[i]["fundamental_hz"]
+#   difference = abs(peak_freq - fundamental)
+#   if difference <= most_accurate_note[0]:
+#     most_accurate_note = [difference, piano_notes[i]["note"]]
  
 print(most_accurate_note[1])
 
-chunk_size = 1103
+chunk_size = int(sr // (1000 // CHUNK))
 
 for i in range(0, len(y), chunk_size):
 
@@ -91,5 +93,5 @@ for i in range(0, len(y), chunk_size):
     if difference <= most_accurate_note[0]:
       most_accurate_note = [difference, piano_notes[_]["note"]]
   
-  print(f"{most_accurate_note[1]} at {i / sr} seconds")
+  print(f"{most_accurate_note[1]} from {i / sr} to {(i + chunk_size) / sr} seconds")
 
