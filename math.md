@@ -19,3 +19,5 @@ $$ \Delta f = \frac{2V}{L} - \frac{3V}{2L} $$
 $$ = \frac{4V - 3V}{2L} $$
 $$ = \frac{V}{2L} $$
 $$ = \frac{1}{2} \cdot \frac{V}{L} $$
+
+However, if we don't capture each individual peak, there is another option. We can take the GCD of two numbers and that should also give us the fundamental frequency.
