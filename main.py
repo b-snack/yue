@@ -67,9 +67,29 @@ for i in piano_notes:
  
 print(most_accurate_note[1])
 
+chunk_size = 1103
 
-# chunk_size = 1103
+for i in range(0, len(y), chunk_size):
 
-# for i in range(0, len(y), chunk_size):
-#   print(i)
-#   pass
+  y_fft = np.fft.rfft(y[i: i+chunk_size])
+  # nps.abs strips the phase and takes the magnitude bc phase is not needed. 
+
+  amp = np.abs(y_fft)
+
+  frequencies = np.fft.rfftfreq(chunk_size, d=1.0/sr)
+
+  # np.argmax() returns the index of the largest value of an array; the index by itself isn't useful but
+  # since freq & mangitude are same length and addup, the index can look up the frequency
+
+  peak_index = np.argmax(amp)
+  peak_freq = frequencies[peak_index] # freq of loudest bin
+
+  most_accurate_note = [abs(peak_freq - piano_notes[1]["fundamental_hz"]), piano_notes[1]["note"]]
+  for _ in piano_notes:
+    fundamental = piano_notes[_]["fundamental_hz"]
+    difference = abs(peak_freq - fundamental)
+    if difference <= most_accurate_note[0]:
+      most_accurate_note = [difference, piano_notes[_]["note"]]
+  
+  print(f"{most_accurate_note[1]} at {i / sr} seconds")
+
