@@ -38,7 +38,7 @@ plt.show()
 # np.abs() returns distance from origin of complex number -> a + bi where i is $$sqrt(-1)$$
 
 y_fft = np.fft.rfft(y)
-# returns array of complex numbers, and one per frequency bin. since we don't care abt pitch, we js take the strength of harmonic
+# nps.abs strips the phase and takes the magnitude bc phase is not needed. 
 
 amp = np.abs(y_fft)
 
@@ -66,3 +66,10 @@ for i in piano_notes:
     most_accurate_note = [difference, piano_notes[i]["note"]]
  
 print(most_accurate_note[1])
+
+
+# chunk_size = 1103
+
+# for i in range(0, len(y), chunk_size):
+#   print(i)
+#   pass
