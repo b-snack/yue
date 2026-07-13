@@ -93,3 +93,15 @@ for i in range(0, len(y), chunk_size):
   
   print(f"{most_accurate_note[1]} at {i / sr} seconds")
 
+
+
+
+
+
+
+# for i in piano_notes:
+#   fundamental = piano_notes[i]["fundamental_hz"]
+#   difference = abs(peak_freq - fundamental)
+#   if difference <= most_accurate_note[0]:
+#     most_accurate_note = [difference, piano_notes[i]["note"]]
+ 
