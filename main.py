@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from notes import piano_notes
 
 CHUNK = 50
+SPEED_OF_SOUND = 340 # m \cdot s^(-1)
 
 filename = "sample.wav"
 
@@ -30,15 +31,6 @@ plt.ylabel("Waveform amp / time")
 plt.grid(True)
 plt.show()
 
-# np.ftt.rfft() returns Fast Fourier Transform, which is alg that converts signal from time-based
-    # into individual frequency components
-    # this also reduces time complexity from O(N^2) to O(Nlog N)
-    # only keeps positive freq
-    # all sound waves are just a bunch of sin / cosine waves added tgt
-        # first & higher frequencies all tgt, so fft unmixes them
-
-# np.abs() returns distance from origin of complex number -> a + bi where i is $$sqrt(-1)$$
-
 y_fft = np.fft.rfft(y)
 # nps.abs strips the phase and takes the magnitude bc phase is not needed. 
 
@@ -61,12 +53,7 @@ peak_index = np.argmax(amp)
 peak_freq = frequencies[peak_index] # freq of loudest bin
 
 most_accurate_note = [abs(peak_freq - piano_notes[1]["fundamental_hz"]), piano_notes[1]["note"]]
-# for i in piano_notes:
-#   fundamental = piano_notes[i]["fundamental_hz"]
-#   difference = abs(peak_freq - fundamental)
-#   if difference <= most_accurate_note[0]:
-#     most_accurate_note = [difference, piano_notes[i]["note"]]
- 
+
 print(most_accurate_note[1])
 
 chunk_size = int(sr // (1000 // CHUNK))
@@ -94,4 +81,11 @@ for i in range(0, len(y), chunk_size):
       most_accurate_note = [difference, piano_notes[_]["note"]]
   
   print(f"{most_accurate_note[1]} from {i / sr} to {(i + chunk_size) / sr} seconds")
+  print(f"peak frequency = {peak_freq}")
 
+def find_peaks(amp):
+  peaks = []
+  for i in range(1, len(amp)-1):
+    if amp[i] > amp[i-1] and amp[i] > amp[i+1] and amp[i] > 500:
+      peaks.append(i)
+  
