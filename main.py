@@ -42,6 +42,9 @@ def match_note(peak_freq):
       most_accurate_note = [difference, piano_notes[_]["note"]]
   
   return most_accurate_note[1]
+
+def score_note(fundamental, chunk_amp, frequencies_chunk):
+  pass
     
 def main():
   y, sr = load_audio("sample.wav")
@@ -89,7 +92,7 @@ def main():
     # np.argmax() returns the index of the largest value of an array; the index by itself isn't useful but
     # since freq & mangitude are same length and addup, the index can look up the frequency
 
-    peak_index_chunk = np.argmax(chunk_amp)
+    peak_index_chunk = np.argmax(chunk_amp) # CHANGE
     peak_freq_chunk = frequencies_chunk[peak_index_chunk] # freq of loudest bin
 
     current_note_name = match_note(peak_freq_chunk)
