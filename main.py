@@ -33,6 +33,7 @@ def find_peaks(amp):
 
 def find_fundamental(peak_indices, frequencies_chunk):
   peaks = frequencies_chunk[peak_indices]
+  print(f"Raw: {peaks}")
 
   if len(peaks) == 0:
     return None
@@ -47,44 +48,58 @@ def find_fundamental(peak_indices, frequencies_chunk):
     one_diff = peaks[i+1] - peaks[i]
     diffs.append(one_diff)
 
-  candidate = min(diffs)
-
-  if candidate < 27.5:
-    valid_diffs = []
-    for difference in diffs:
-      if difference > 27.5:
-        valid_diffs.append(difference)
-
-    if len(valid_diffs) == 0:
-      return None
-
-    candidate = min(valid_diffs)
-
-  has_fundamental_peak = np.any(np.abs(peaks - candidate) <= 5.0)
-  if not has_fundamental_peak:
+  valid_diffs = []
+  for d in diffs:
+    if d >= 27.5:
+      valid_diffs.append(d)
+  
+  if len(valid_diffs) == 0:
     return None
+  
+  unique_diffs = []
+  for d in valid_diffs:
+    if d not in unique_diffs:
+      unique_diffs.append(d)
+  
+  sorted_diffs = sorted(unique_diffs)
 
-  multiples = np.round(peaks / candidate)
-  errors = np.abs(peaks - (multiples * candidate))
+  top_3_candidates = []
+  for i in range(min(3, len(sorted_diffs))):
+    top_3_candidates.append(sorted_diffs[i])
 
-  allowed_tolerances = np.maximum(5.0, 0.05 * (multiples * candidate))
+  best_candidate = None
+  best_score = 0
 
-  matching_peaks = []
-  for i in range(len(peaks)):
-    if errors[i] <= allowed_tolerances[i]:
-      matching_peaks.append(peaks[i])
+  for candidate in top_3_candidates:
+    has_fundamental_peak = np.any(np.abs(peaks - candidate) <= 5.0)
+    if not has_fundamental_peak:
+      continue
 
-  if len(matching_peaks) / len(peaks) >= 0.70 and len(matching_peaks) >= 2:
-    fundamental = candidate
-  else:
-    fundamental = None
+    multiples = np.round(peaks / candidate)
+    errors = np.abs(peaks - (multiples * candidate))
+    allowed_tolerances = np.maximum(5.0, 0.05 * (multiples * candidate))
 
-  print(f"Peaks Hz: {peaks}")
+    matching_peaks = []
+    for i in range(len(peaks)):
+      if errors[i] <= allowed_tolerances[i]:
+        matching_peaks.append(peaks[i])
+    
+    score = len(matching_peaks)
+
+    if score / len(peaks) >= 0.70 and len(matching_peaks) >= 2:
+      if score > best_score:
+        best_score = score
+        best_candidate = candidate
+      elif score == best_score:
+        if best_candidate is None or candidate < best_candidate:
+          best_candidate = candidate
+
+  # print(f"Peaks Hz: {peaks}")
   # print(f"diffs: {diffs}")
   # print(f"candidate: {candidate}")
   # print(f"errors: {errors}")
 
-  return fundamental
+  return best_candidate
 
 def match_note(peak_freq):
   most_accurate_note = [abs(peak_freq - piano_notes[1]["fundamental_hz"]), piano_notes[1]["note"]]
