@@ -60,10 +60,14 @@ def find_fundamental(peak_indices, frequencies_chunk):
 
     candidate = min(valid_diffs)
 
+  has_fundamental_peak = np.any(np.abs(peaks - candidate) <= 5.0)
+  if not has_fundamental_peak:
+    return None
+
   multiples = np.round(peaks / candidate)
   errors = np.abs(peaks - (multiples * candidate))
 
-  allowed_tolerances = 5 + 2 * (multiples - 1)
+  allowed_tolerances = np.maximum(5.0, 0.05 * (multiples * candidate))
 
   matching_peaks = []
   for i in range(len(peaks)):
