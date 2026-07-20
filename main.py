@@ -33,7 +33,7 @@ def find_peaks(amp):
 
 def find_fundamental(peak_indices, frequencies_chunk):
   peaks = frequencies_chunk[peak_indices]
-  print(f"Raw: {peaks}")
+  # print(f"Raw: {peaks}")
 
   if len(peaks) == 0:
     return None
@@ -144,7 +144,7 @@ def main():
     chunk_amp = np.abs(y_fft_chunk)
     frequencies_chunk = np.fft.rfftfreq(chunk_size, d=1.0/sr)
 
-    print(f"max amp in chunk: {np.max(chunk_amp):.2f}")
+    # print(f"max amp in chunk: {np.max(chunk_amp):.2f}")
 
     peak_index_chunk = find_peaks(chunk_amp)
     peak_freq_chunk = find_fundamental(peak_index_chunk, frequencies_chunk)
@@ -155,9 +155,9 @@ def main():
 
     current_note_name = match_note(peak_freq_chunk)
 
-    print(f"Peaks found: {len(peak_index_chunk)}")
+    # print(f"Peaks found: {len(peak_index_chunk)}")
     print(f'{current_note_name} from {i / sr:.3f} to {(i+chunk_size)/ sr:.3f} seconds')
-    print(f'peak frequency = {peak_freq_chunk:.2f} Hz')
+    # print(f'peak frequency = {peak_freq_chunk:.2f} Hz')
 
 if __name__ == "__main__":
   main()
