@@ -28,6 +28,7 @@ def find_peaks(amp):
   for i in range(1, len(amp)-1):
     if amp[i] > amp[i-1] and amp[i] > amp[i+1] and amp[i] > 30 * np.mean(amp):
       peaks.append(i)
+      
   return peaks
 
 def find_fundamental(peak_indices, frequencies_chunk):
@@ -62,18 +63,22 @@ def find_fundamental(peak_indices, frequencies_chunk):
   multiples = np.round(peaks / candidate)
   errors = np.abs(peaks - (multiples * candidate))
 
-  matching_peaks = np.sum(errors <= 5.0)
-  fit_ratio = matching_peaks / len(peaks)
+  allowed_tolerances = 5 + 2 * (multiples - 1)
 
-  if fit_ratio >= 0.70 and matching_peaks >= 2:
+  matching_peaks = []
+  for i in range(len(peaks)):
+    if errors[i] <= allowed_tolerances[i]:
+      matching_peaks.append(peaks[i])
+
+  if len(matching_peaks) / len(peaks) >= 0.70 and len(matching_peaks) >= 2:
     fundamental = candidate
   else:
     fundamental = None
 
   print(f"Peaks Hz: {peaks}")
-  print(f"diffs: {diffs}")
-  print(f"candidate: {candidate}")
-  print(f"errors: {errors}")
+  # print(f"diffs: {diffs}")
+  # print(f"candidate: {candidate}")
+  # print(f"errors: {errors}")
 
   return fundamental
 
