@@ -5,7 +5,7 @@ from notes import piano_notes
 
 # ------------------- CONSTANTS -------------------
 
-CHUNK = 50
+CHUNK = 200
 SPEED_OF_SOUND = 340 # m \cdot s^(-1)
 
 # -------------------- FUNCTIONS ---------------------
@@ -32,6 +32,35 @@ def find_peaks(amp):
       peaks.append(i)
 
   return peaks
+
+def find_fundamental(peak_indices, frequencies_chunk):
+  peaks = frequencies_chunk[peak_indices]
+  
+  if len(peaks) == 0:
+    return 0
+  
+  if len(peaks) == 1:
+    return peaks[0]
+
+  peaks = np.sort(peaks)
+
+  diffs = []
+  for i in range(len(peaks) - 1):
+    one_diff = peaks[i+1] - peaks[i]
+    diffs.append(one_diff)
+
+  candidate = min(diffs)
+
+  multiples = np.round(peaks / candidate)
+  errors = np.abs(peaks - (multiples * candidate))
+
+  if np.all(errors <= 5.0):
+    fundamental = candidate
+  else:
+    fundamental = peaks[0]
+
+  return fundamental
+  
   
 def match_note(peak_freq):
   most_accurate_note = [abs(peak_freq - piano_notes[1]["fundamental_hz"]), piano_notes[1]["note"]]
@@ -44,8 +73,8 @@ def match_note(peak_freq):
   return most_accurate_note[1]
 
 def score_note(fundamental, chunk_amp, frequencies_chunk):
-  pass
-    
+  pass    
+
 def main():
   y, sr = load_audio("sample.wav")
 
@@ -92,13 +121,14 @@ def main():
     # np.argmax() returns the index of the largest value of an array; the index by itself isn't useful but
     # since freq & mangitude are same length and addup, the index can look up the frequency
 
-    peak_index_chunk = np.argmax(chunk_amp) # CHANGE
-    peak_freq_chunk = frequencies_chunk[peak_index_chunk] # freq of loudest bin
-
+    peak_index_chunk = find_peaks(chunk_amp)
+    peak_freq_chunk = find_fundamental(peak_index_chunk, frequencies_chunk) # freq of loudest bin
     current_note_name = match_note(peak_freq_chunk)
 
     print(f'{current_note_name} from {i / sr:.3f} to {(i+chunk_size)/ sr:.3f} seconds')
     print(f'peak frequency = {peak_freq_chunk:.2f} Hz')
+
+    # print(sr / chunk_size)
 
 if __name__ == "__main__":
   main()
