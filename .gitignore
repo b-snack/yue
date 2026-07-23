@@ -2,8 +2,7 @@
 
 venv/
 
-sample.mp3
-
-sample.wav
-
 __pycache__/
+
+yue.code-workspace
+

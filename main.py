@@ -118,7 +118,7 @@ def main():
   current_note = None
   start_time = 0
 
-  y, sr = load_audio("record1.wav")
+  y, sr = load_audio("sample_audios/sample.wav")
 
   time = np.arange(len(y)) / sr
 
