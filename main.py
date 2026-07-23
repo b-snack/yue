@@ -26,13 +26,14 @@ def load_audio(filename):
 def find_peaks(amp):
   peaks = []
   for i in range(1, len(amp)-1):
-    if amp[i] > amp[i-1] and amp[i] > amp[i+1] and amp[i] > 30 * np.mean(amp):
+    if amp[i] > amp[i-1] and amp[i] > amp[i+1] and amp[i] > 25 * np.mean(amp):
       peaks.append(i)
       
   return peaks
 
 def find_fundamental(peak_indices, frequencies_chunk):
   peaks = frequencies_chunk[peak_indices]
+  # print(f"Raw: {peaks}")
 
   if len(peaks) == 0:
     return None
@@ -47,40 +48,58 @@ def find_fundamental(peak_indices, frequencies_chunk):
     one_diff = peaks[i+1] - peaks[i]
     diffs.append(one_diff)
 
-  candidate = min(diffs)
+  valid_diffs = []
+  for d in diffs:
+    if d >= 27.5:
+      valid_diffs.append(d)
+  
+  if len(valid_diffs) == 0:
+    return None
+  
+  unique_diffs = []
+  for d in valid_diffs:
+    if d not in unique_diffs:
+      unique_diffs.append(d)
+  
+  sorted_diffs = sorted(unique_diffs)
 
-  if candidate < 27.5:
-    valid_diffs = []
-    for difference in diffs:
-      if difference > 27.5:
-        valid_diffs.append(difference)
+  top_3_candidates = []
+  for i in range(min(3, len(sorted_diffs))):
+    top_3_candidates.append(sorted_diffs[i])
 
-    if len(valid_diffs) == 0:
-      return None
+  best_candidate = None
+  best_score = 0
 
-    candidate = min(valid_diffs)
+  for candidate in top_3_candidates:
+    has_fundamental_peak = np.any(np.abs(peaks - candidate) <= 5.0)
+    if not has_fundamental_peak:
+      continue
 
-  multiples = np.round(peaks / candidate)
-  errors = np.abs(peaks - (multiples * candidate))
+    multiples = np.round(peaks / candidate)
+    errors = np.abs(peaks - (multiples * candidate))
+    allowed_tolerances = np.maximum(5.0, 0.05 * (multiples * candidate))
 
-  allowed_tolerances = 5 + 2 * (multiples - 1)
+    matching_peaks = []
+    for i in range(len(peaks)):
+      if errors[i] <= allowed_tolerances[i]:
+        matching_peaks.append(peaks[i])
+    
+    score = len(matching_peaks)
 
-  matching_peaks = []
-  for i in range(len(peaks)):
-    if errors[i] <= allowed_tolerances[i]:
-      matching_peaks.append(peaks[i])
+    if score / len(peaks) >= 0.70 and len(matching_peaks) >= 2:
+      if score > best_score:
+        best_score = score
+        best_candidate = candidate
+      elif score == best_score:
+        if best_candidate is None or candidate < best_candidate:
+          best_candidate = candidate
 
-  if len(matching_peaks) / len(peaks) >= 0.70 and len(matching_peaks) >= 2:
-    fundamental = candidate
-  else:
-    fundamental = None
-
-  print(f"Peaks Hz: {peaks}")
+  # print(f"Peaks Hz: {peaks}")
   # print(f"diffs: {diffs}")
   # print(f"candidate: {candidate}")
   # print(f"errors: {errors}")
 
-  return fundamental
+  return best_candidate
 
 def match_note(peak_freq):
   most_accurate_note = [abs(peak_freq - piano_notes[1]["fundamental_hz"]), piano_notes[1]["note"]]
@@ -95,7 +114,11 @@ def score_note(fundamental, chunk_amp, frequencies_chunk):
   pass
 
 def main():
-  y, sr = load_audio("sample.wav")
+  notes = []
+  current_note = None
+  start_time = 0
+
+  y, sr = load_audio("sample_audios/sample.wav")
 
   time = np.arange(len(y)) / sr
 
@@ -125,20 +148,34 @@ def main():
     chunk_amp = np.abs(y_fft_chunk)
     frequencies_chunk = np.fft.rfftfreq(chunk_size, d=1.0/sr)
 
-    print(f"max amp in chunk: {np.max(chunk_amp):.2f}")
+    # print(f"max amp in chunk: {np.max(chunk_amp):.2f}")
 
     peak_index_chunk = find_peaks(chunk_amp)
     peak_freq_chunk = find_fundamental(peak_index_chunk, frequencies_chunk)
 
+    current_note_name = None
+
     if peak_freq_chunk is None:
-      print("unclear")
-      continue
+      current_note_name = "unclear"
+    else:
+      current_note_name = match_note(peak_freq_chunk)
 
-    current_note_name = match_note(peak_freq_chunk)
+    if current_note_name == "unclear":
+      pass
 
-    print(f"Peaks found: {len(peak_index_chunk)}")
-    print(f'{current_note_name} from {i / sr:.3f} to {(i+chunk_size)/ sr:.3f} seconds')
-    print(f'peak frequency = {peak_freq_chunk:.2f} Hz')
+    elif current_note_name == current_note:
+      pass
+    
+    else:
+      if current_note is not None:
+        notes.append([current_note, start_time, i/sr])
+      current_note = current_note_name
+      start_time = i/sr
+
+  if current_note is not None:
+    notes.append([current_note, start_time, len(y)/sr])
+
+  print(notes)
 
 if __name__ == "__main__":
   main()
