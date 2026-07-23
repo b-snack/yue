@@ -26,7 +26,7 @@ def load_audio(filename):
 def find_peaks(amp):
   peaks = []
   for i in range(1, len(amp)-1):
-    if amp[i] > amp[i-1] and amp[i] > amp[i+1] and amp[i] > 30 * np.mean(amp):
+    if amp[i] > amp[i-1] and amp[i] > amp[i+1] and amp[i] > 25 * np.mean(amp):
       peaks.append(i)
       
   return peaks
@@ -114,7 +114,11 @@ def score_note(fundamental, chunk_amp, frequencies_chunk):
   pass
 
 def main():
-  y, sr = load_audio("sample.wav")
+  notes = []
+  current_note = None
+  start_time = 0
+
+  y, sr = load_audio("record1.wav")
 
   time = np.arange(len(y)) / sr
 
@@ -149,15 +153,29 @@ def main():
     peak_index_chunk = find_peaks(chunk_amp)
     peak_freq_chunk = find_fundamental(peak_index_chunk, frequencies_chunk)
 
+    current_note_name = None
+
     if peak_freq_chunk is None:
-      print("unclear")
-      continue
+      current_note_name = "unclear"
+    else:
+      current_note_name = match_note(peak_freq_chunk)
 
-    current_note_name = match_note(peak_freq_chunk)
+    if current_note_name == "unclear":
+      pass
 
-    # print(f"Peaks found: {len(peak_index_chunk)}")
-    print(f'{current_note_name} from {i / sr:.3f} to {(i+chunk_size)/ sr:.3f} seconds')
-    # print(f'peak frequency = {peak_freq_chunk:.2f} Hz')
+    elif current_note_name == current_note:
+      pass
+    
+    else:
+      if current_note is not None:
+        notes.append([current_note, start_time, i/sr])
+      current_note = current_note_name
+      start_time = i/sr
+
+  if current_note is not None:
+    notes.append([current_note, start_time, len(y)/sr])
+
+  print(notes)
 
 if __name__ == "__main__":
   main()
