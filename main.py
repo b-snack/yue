@@ -1,14 +1,26 @@
+#!/usr/bin/env python3
+"""
+yue - transcribe monophonic audio into piano note names
+using FFT-based harmonic/pitch detection.
+"""
+import argparse
+import sys
+from pathlib import Path
+
 from scipy.io import wavfile
 import numpy as np
 import matplotlib.pyplot as plt
+
 from notes import piano_notes
 
 # ------------------- CONSTANTS -------------------
 
-CHUNK = 200
-SPEED_OF_SOUND = 340 # m \cdot s^(-1)
+CHUNK = 200  # ms, controls the analysis window size
+SPEED_OF_SOUND = 340  # m/s (reserved for future use)
 
 # -------------------- FUNCTIONS ---------------------
+
+
 def load_audio(filename):
   sr, y = wavfile.read(filename)
 
@@ -23,17 +35,18 @@ def load_audio(filename):
 
   return y, sr
 
+
 def find_peaks(amp):
   peaks = []
   for i in range(1, len(amp)-1):
     if amp[i] > amp[i-1] and amp[i] > amp[i+1] and amp[i] > 25 * np.mean(amp):
       peaks.append(i)
-      
+
   return peaks
+
 
 def find_fundamental(peak_indices, frequencies_chunk):
   peaks = frequencies_chunk[peak_indices]
-  # print(f"Raw: {peaks}")
 
   if len(peaks) == 0:
     return None
@@ -52,15 +65,15 @@ def find_fundamental(peak_indices, frequencies_chunk):
   for d in diffs:
     if d >= 27.5:
       valid_diffs.append(d)
-  
+
   if len(valid_diffs) == 0:
     return None
-  
+
   unique_diffs = []
   for d in valid_diffs:
     if d not in unique_diffs:
       unique_diffs.append(d)
-  
+
   sorted_diffs = sorted(unique_diffs)
 
   top_3_candidates = []
@@ -83,7 +96,7 @@ def find_fundamental(peak_indices, frequencies_chunk):
     for i in range(len(peaks)):
       if errors[i] <= allowed_tolerances[i]:
         matching_peaks.append(peaks[i])
-    
+
     score = len(matching_peaks)
 
     if score / len(peaks) >= 0.70 and len(matching_peaks) >= 2:
@@ -94,12 +107,8 @@ def find_fundamental(peak_indices, frequencies_chunk):
         if best_candidate is None or candidate < best_candidate:
           best_candidate = candidate
 
-  # print(f"Peaks Hz: {peaks}")
-  # print(f"diffs: {diffs}")
-  # print(f"candidate: {candidate}")
-  # print(f"errors: {errors}")
-
   return best_candidate
+
 
 def match_note(peak_freq):
   most_accurate_note = [abs(peak_freq - piano_notes[1]["fundamental_hz"]), piano_notes[1]["note"]]
@@ -110,17 +119,17 @@ def match_note(peak_freq):
       most_accurate_note = [difference, piano_notes[_]["note"]]
   return most_accurate_note[1]
 
+
 def score_note(fundamental, chunk_amp, frequencies_chunk):
   pass
 
-def main():
+
+def analyze(filename, show_plot=True):
   notes = []
   current_note = None
   start_time = 0
 
-  y, sr = load_audio("sample_audios/sample.wav")
-
-  time = np.arange(len(y)) / sr
+  y, sr = load_audio(filename)
 
   y_fft = np.fft.rfft(y)
   amp = np.abs(y_fft)
@@ -130,14 +139,16 @@ def main():
   peak_freqs = frequencies[peak_indices]
   peak_amps = amp[peak_indices]
 
-  plt.figure(figsize=(10,4))
-  plt.plot(frequencies, amp, color='r', label='Spectrum')
-  plt.scatter(peak_freqs, peak_amps, color='blue', zorder=3, label='Peaks')
-  plt.xlabel("frequency (Hz)")
-  plt.ylabel("Magnitude")
-  plt.grid(True)
-  plt.legend()
-  plt.show()
+  if show_plot:
+    plt.figure(figsize=(10, 4))
+    plt.plot(frequencies, amp, color='r', label='Spectrum')
+    plt.scatter(peak_freqs, peak_amps, color='blue', zorder=3, label='Peaks')
+    plt.xlabel("frequency (Hz)")
+    plt.ylabel("Magnitude")
+    plt.title(Path(filename).name)
+    plt.grid(True)
+    plt.legend()
+    plt.show()
 
   chunk_size = int(sr // (1000 // CHUNK))
 
@@ -147,8 +158,6 @@ def main():
     y_fft_chunk = np.fft.rfft(chunk_data)
     chunk_amp = np.abs(y_fft_chunk)
     frequencies_chunk = np.fft.rfftfreq(chunk_size, d=1.0/sr)
-
-    # print(f"max amp in chunk: {np.max(chunk_amp):.2f}")
 
     peak_index_chunk = find_peaks(chunk_amp)
     peak_freq_chunk = find_fundamental(peak_index_chunk, frequencies_chunk)
@@ -165,7 +174,7 @@ def main():
 
     elif current_note_name == current_note:
       pass
-    
+
     else:
       if current_note is not None:
         notes.append([current_note, start_time, i/sr])
@@ -175,7 +184,39 @@ def main():
   if current_note is not None:
     notes.append([current_note, start_time, len(y)/sr])
 
-  print(notes)
+  return notes
+
+
+def main():
+  parser = argparse.ArgumentParser(
+    prog="yue",
+    description="Transcribe monophonic audio into note names using FFT-based harmonic detection."
+  )
+  parser.add_argument(
+    "audio_file",
+    nargs="?",
+    default="sample_audios/sample.wav",
+    help="Path to a .wav file to analyze (default: sample_audios/sample.wav)"
+  )
+  parser.add_argument(
+    "--no-plot",
+    action="store_true",
+    help="Skip the frequency spectrum plot popup"
+  )
+  args = parser.parse_args()
+
+  if not Path(args.audio_file).exists():
+    print(f"error: file not found: {args.audio_file}", file=sys.stderr)
+    sys.exit(1)
+
+  notes = analyze(args.audio_file, show_plot=not args.no_plot)
+
+  print("\nDetected notes:")
+  if not notes:
+    print("  (none)")
+  for note, start, end in notes:
+    print(f"  {note:<4}  {start:6.2f}s -> {end:6.2f}s")
+
 
 if __name__ == "__main__":
   main()
