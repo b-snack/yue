@@ -94,3 +94,4 @@ piano_notes = {
     88: {"note": "C8", "fundamental_hz": 4186.01, "lower_bound_hz": 4066.84, "upper_bound_hz": 4308.67}
 }
 
+print(len(piano_notes))

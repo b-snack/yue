@@ -111,12 +111,21 @@ def match_note(peak_freq):
   return most_accurate_note[1]
 
 def score_note(fundamental, chunk_amp, frequencies_chunk):
-  pass
+  score = 0.0
+  for i in range(1, 5):
+    target_freq = fundamental * i
+    closest_index = np.argmin(np.abs(frequencies_chunk - target_freq))
+    score += chunk_amp[closest_index]
+
+  return score
 
 def main():
   notes = []
   current_note = None
   start_time = 0
+  max_amp = 0
+  max_score = 0
+  threshold = 0.3 * max_score
 
   y, sr = load_audio("sample_audios/sample.wav")
 
@@ -142,11 +151,23 @@ def main():
   chunk_size = int(sr // (1000 // CHUNK))
 
   for i in range(0, len(y), chunk_size):
+    scores = []
     chunk_data = y[i: i+chunk_size]
 
     y_fft_chunk = np.fft.rfft(chunk_data)
     chunk_amp = np.abs(y_fft_chunk)
     frequencies_chunk = np.fft.rfftfreq(chunk_size, d=1.0/sr)
+
+    for note in range(1, len(piano_notes)+1):
+      score = score_note(piano_notes[note]["fundamental_hz"], chunk_amp, frequencies_chunk)
+      if score > max_score:
+        score = max_score
+        scores.append([piano_notes[note]["note"], score])
+
+    for note in range(1, len(piano_notes)+1):
+      score = score_note(piano_notes[note]["fundamental_hz"], chunk_amp, frequencies_chunk)
+      if score > threshold:
+        notes.append(piano_notes[note]["note"])
 
     # print(f"max amp in chunk: {np.max(chunk_amp):.2f}")
 
