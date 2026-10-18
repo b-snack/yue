@@ -6,3 +6,6 @@ __pycache__/
 
 yue.code-workspace
 
+build/
+
+dist/
