@@ -1,6 +1,6 @@
 # yue
 
-A program that transcribes monophonic audio into note names using FFT-based harmonic detection.
+A program that transcribes monophonic audio into note names using FFT (Fast Fourier Transform)-based harmonic detection.
 
 From the chinese word, 音**乐** (Music)
 
