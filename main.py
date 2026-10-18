@@ -131,13 +131,22 @@ def score_note(fundamental, chunk_amp, frequencies_chunk):
   Adds the loudness of all four points and returns it as score.
   For future reference in case of confusion, chunk amp is the loudness, and frequencies_chunk is a list of
   all the frequencies in progression (e.g. [50, 100, 150, 200]); they match with a loud (think of it as x and y axis)
+
+  Fundamental ratio is the loudness against the total added loudness
   """
-  score = 0.0
+  harmonics = []
   for i in range(1, 5):
     target_freq = fundamental * i
     index = np.argmin(np.abs(frequencies_chunk - target_freq))
-    score += chunk_amp[index]
-  return score
+    harmonics.append(chunk_amp[index])
+
+  score = sum(harmonics)
+
+  if score > 0:
+    fundamental_ratio = harmonics[0] / score
+  else:
+    fundamental_ratio = 0.0
+  return score, fundamental_ratio
 
 
 def analyze(filename, show_plot=True):
@@ -175,26 +184,28 @@ def analyze(filename, show_plot=True):
     chunk_amp = np.abs(y_fft_chunk)
     frequencies_chunk = np.fft.rfftfreq(chunk_size, d=1.0/sr)
 
-    peak_index_chunk = find_peaks(chunk_amp)
-    peak_freq_chunk = find_fundamental(peak_index_chunk, frequencies_chunk)
+    scores = []
+    max_score = 0
+    for note in piano_notes:
+      score, fundamental_ratio = score_note(piano_notes[note]["fundamental_hz"], chunk_amp, frequencies_chunk)
+      scores.append((score, fundamental_ratio, piano_notes[note]["note"]))
 
-    current_note_name = None
+      if score > max_score:
+        max_score = score
 
-    if peak_freq_chunk is None:
-      current_note_name = "unclear"
-    else:
-      current_note_name = match_note(peak_freq_chunk)
+    detected_notes = []
+    if max_score > 0:
+      for score, fundamental_ratio, note_name in scores:
+        if score > max_score * 0.6 and fundamental_ratio > 0.15:
+          detected_notes.append(note_name)
 
-    if current_note_name == "unclear":
-      pass
-
-    elif current_note_name == current_note:
+    if detected_notes == current_note:
       pass
 
     else:
       if current_note is not None:
         notes.append([current_note, start_time, i/sr])
-      current_note = current_note_name
+      current_note = detected_notes
       start_time = i/sr
 
   if current_note is not None:
@@ -231,7 +242,7 @@ def main():
   if not notes:
     print("  (none)")
   for note, start, end in notes:
-    print(f"  {note:<4}  {start:6.2f}s -> {end:6.2f}s")
+    print(f"  {note}  {start:6.2f}s -> {end:6.2f}s")
 
 
 if __name__ == "__main__":
