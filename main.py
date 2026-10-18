@@ -22,6 +22,11 @@ SPEED_OF_SOUND = 340  # m/s (reserved for future use)
 
 
 def load_audio(filename):
+  """
+  Reads a .wav, converts to mono float32 array, y, with sample rate, sr.
+  Mono means that instead of having two channels (e.g. stereo left & right),
+  the audio is combined into one. 
+  """
   sr, y = wavfile.read(filename)
 
   if y.dtype != np.float32:
@@ -121,7 +126,18 @@ def match_note(peak_freq):
 
 
 def score_note(fundamental, chunk_amp, frequencies_chunk):
-  pass
+  """
+  Takes a supposed fundamental, and matches the harmonics with their closest frequency matches.
+  Adds the loudness of all four points and returns it as score.
+  For future reference in case of confusion, chunk amp is the loudness, and frequencies_chunk is a list of
+  all the frequencies in progression (e.g. [50, 100, 150, 200]); they match with a loud (think of it as x and y axis)
+  """
+  score = 0.0
+  for i in range(1, 5):
+    target_freq = fundamental * i
+    index = np.argmin(np.abs(frequencies_chunk - target_freq))
+    score += chunk_amp[index]
+  return score
 
 
 def analyze(filename, show_plot=True):
