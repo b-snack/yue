@@ -134,11 +134,17 @@ def score_note(fundamental, chunk_amp, frequencies_chunk):
 
   Fundamental ratio is the loudness against the total added loudness
   """
+
   harmonics = []
   for i in range(1, 5):
     target_freq = fundamental * i
+    if target_freq > frequencies_chunk[-1]:
+      break
     index = np.argmin(np.abs(frequencies_chunk - target_freq))
     harmonics.append(chunk_amp[index])
+
+  if not harmonics or sum(harmonics) == 0:
+    return 0.0, 0.0
 
   score = sum(harmonics)
 
@@ -179,6 +185,9 @@ def analyze(filename, show_plot=True):
 
   for i in range(0, len(y), chunk_size):
     chunk_data = y[i: i+chunk_size]
+
+    if len(chunk_data) < chunk_size:
+      break
 
     y_fft_chunk = np.fft.rfft(chunk_data)
     chunk_amp = np.abs(y_fft_chunk)
